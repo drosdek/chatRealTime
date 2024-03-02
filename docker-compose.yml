@@ -1,0 +1,19 @@
+version: "3"
+services:
+  nestjs_backend:
+    build:
+      context: ./backend
+    container_name: nestjs_backend
+    restart: unless-stopped
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=production
+
+  reactjs_frontend:
+    build:
+      context: ./frontend
+    container_name: reactjs_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
