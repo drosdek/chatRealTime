@@ -15,12 +15,17 @@ export class AuthService {
     return this.jwtService.sign(payload);
   }
 
-  async validateUser(username: string, password: string): Promise<any> {
+  async validateUser(
+    username: string,
+    password: string,
+    ip: string,
+  ): Promise<{ access_token: string }> {
     const user = await this.userService.findByUsername(username);
     if (user?.password !== password) {
       throw new UnauthorizedException();
     }
-    const payload = this.createToken(user.username, user.password);
-    return payload;
+    await this.userService.historicLogin(user.id, ip);
+    const payload = await this.createToken(user.username, user.password);
+    return { access_token: payload.toString() };
   }
 }

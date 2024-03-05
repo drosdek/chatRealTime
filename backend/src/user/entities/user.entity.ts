@@ -1,9 +1,10 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { HistoricLogin } from './historic-login.entity';
 
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn()
-  id?: number;
+  id: number;
 
   @Column({ unique: true })
   username: string;
@@ -15,8 +16,11 @@ export class User {
   password: string;
 
   @Column({ default: () => 'CURRENT_TIMESTAMP' })
-  created_at?: Date;
+  created_at: Date;
 
   @Column({ default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
-  updated_at?: Date;
+  updated_at: Date;
+
+  @OneToMany(() => HistoricLogin, (historicLogin) => historicLogin.user)
+  historicLogins: HistoricLogin[];
 }
