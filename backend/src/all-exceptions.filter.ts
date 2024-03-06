@@ -6,29 +6,40 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { AbstractHttpAdapter, HttpAdapterHost } from '@nestjs/core';
+import { ValidationError } from 'apollo-server-express';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   constructor(private readonly httpAdapter: AbstractHttpAdapter) {}
 
-  catch(exception: unknown, host: ArgumentsHost): void {
-    // In certain situations `httpAdapter` might not be available in the
-    // constructor method, thus we should resolve it here.
-    // const { httpAdapter } = this.httpAdapterHost;
-
+  catch(exception: HttpException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
+    const response = ctx.getResponse();
+    const request = ctx.getRequest();
 
-    const httpStatus =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    if (exception instanceof HttpException && exception.getStatus() === HttpStatus.BAD_REQUEST) {
+      if (exception.getResponse() instanceof Array && exception.getResponse()[0] instanceof ValidationError) {
+        const validationErrors = exception.getResponse() as ValidationError[];
+        const messages = validationErrors.map(error => Object.values(error.constraints));
+        response.status(HttpStatus.BAD_REQUEST).json({
+          statusCode: HttpStatus.BAD_REQUEST,
+          timestamp: new Date().toISOString(),
+          path: request.url,
+          message: 'Erro de validação',
+          errors: messages,
+        });
+        return;
+      }
+    }
 
-    const responseBody = {
-      statusCode: httpStatus,
+    const status = exception.getStatus();
+    const responseBody = exception.getResponse();
+
+    response.status(status).json({
+      statusCode: status,
       timestamp: new Date().toISOString(),
-      path: this.httpAdapter.getRequestUrl(ctx.getRequest()),
-    };
-
-    this.httpAdapter.reply(ctx.getResponse(), responseBody, httpStatus);
+      path: request.url,
+      message: responseBody['message'] || null,
+    });
   }
 }
